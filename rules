@@ -1,0 +1,56 @@
+#!/usr/bin/make -f
+export DH_VERBOSE=1
+
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+export DEB_CFLAGS_MAINT_APPEND = -Wall -pedantic
+export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
+
+# Check ghc version history at: https://gitlab.haskell.org/ghc/ghc/-/wikis/commentary/libraries/version-history
+ghc_version=9.8.2
+cabal_version=3.10.2.1
+bash_completions_dir=usr/share/bash-completion/completions
+
+%:
+	dh $@ --with autoreconf -Bbuild
+
+override_dh_auto_configure:
+	ghcup upgrade
+	ghcup install ghc ${ghc_version}
+	ghcup set ghc ${ghc_version}
+	ghcup install cabal ${cabal_version}
+	# Ignore output to stderr from ```cabal update```
+	-cabal update
+	echo "--------------------------------------------------"
+	echo "Haskell build environment:"
+	ghcup --version
+	ghc --version
+	cabal --version
+	echo "--------------------------------------------------"
+	echo
+	#cabal configure --with-compiler=ghc-${ghc_version} --enable-optimization --enable-split-sections --enable-executable-stripping --enable-library-stripping
+	#--------------------------------------------------------------------
+	# Custom cabal.project.local
+	#--------------------------------------------------------------------
+	echo "ignore-project: False" >> cabal.project.local
+	echo "with-compiler: ghc-${ghc_version}" >> cabal.project.local
+	echo "split-sections: True" >> cabal.project.local
+	echo "executable-stripping: True" >> cabal.project.local
+	echo "library-stripping: True" >> cabal.project.local
+	echo "optimization: 2" >> cabal.project.local
+	echo "" >> cabal.project.local
+	echo "program-options" >> cabal.project.local
+	echo "  ghc-options: -fllvm" >> cabal.project.local
+	echo "" >> cabal.project.local
+	echo "package *" >> cabal.project.local
+	echo "  optimization: 2" >> cabal.project.local
+	echo "  ghc-options: -fllvm" >> cabal.project.local
+	echo "" >> cabal.project.local
+
+override_dh_auto_build:
+	cabal build cardano-address
+
+override_dh_auto_install:
+	mkdir -p debian/cardano-addresses/usr/bin
+	mkdir -p "debian/cardano-addresses/${bash_completions_dir}"
+	cp -p "$(shell jq -r '."install-plan"[] | select(."component-name" == "exe:'cardano-address'") | ."bin-file"' dist-newstyle/cache/plan.json | head -n 1)" debian/cardano-addresses/usr/bin/
+	debian/cardano-addresses/usr/bin/cardano-address --bash-completion-script cardano-address > "debian/cardano-addresses/${bash_completions_dir}/cardano-address"

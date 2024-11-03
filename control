@@ -1,0 +1,21 @@
+Source: cardano-addresses
+Section: misc
+Priority: optional
+Maintainer: builder <builder@terminada.io>
+Rules-Requires-Root: no
+Build-Depends:
+ debhelper-compat (= 13),
+Standards-Version: 4.6.2
+Homepage: https://github.com/intersectmbo/cardano-addresses
+Vcs-Browser: https://github.com/intersectmbo/cardano-addresses
+Vcs-Git: git://github.com/intersectmbo/cardano-addresses.git
+
+Package: cardano-addresses
+Architecture: any
+Depends:
+ ${shlibs:Depends},
+ ${misc:Depends},
+Description: Cardano address derivation functionality
+ Module provides mnemonic (backup phrase) creation, and conversion of a
+ mnemonic to seed for wallet restoration, and address derivation
+ functionalities.
